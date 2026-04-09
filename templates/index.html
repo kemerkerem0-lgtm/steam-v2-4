@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STEAMHUB // Explore Gaming</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #00d2ff; --bg: #0b0e14; --surface: #161b22; --border: #30363d; }
+        body { background: var(--bg); color: #fff; font-family: 'Outfit', sans-serif; margin: 0; display: flex; }
+        .sidebar { width: 260px; height: 100vh; position: fixed; background: #010409; border-right: 1px solid var(--border); padding: 30px 20px; box-sizing: border-box; z-index: 100; }
+        .logo { font-size: 26px; font-weight: 800; color: var(--primary); margin-bottom: 40px; }
+        .nav-link { padding: 12px 15px; border-radius: 10px; margin-bottom: 8px; cursor: pointer; transition: 0.2s; color: #8b949e; text-decoration: none; display: flex; align-items: center; gap: 12px; }
+        .nav-link.active, .nav-link:hover { background: #1f2937; color: var(--primary); }
+        .content { margin-left: 260px; flex: 1; padding: 40px; }
+        .search-bar { width: 100%; max-width: 500px; background: #0d1117; border: 1px solid var(--border); padding: 14px 22px; border-radius: 20px; color: #fff; margin-bottom: 40px; outline: none; }
+        .game-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px; }
+        .card { background: var(--surface); border-radius: 12px; overflow: hidden; transition: 0.3s; border: 1px solid var(--border); text-decoration: none; color: inherit; display: block; }
+        .card:hover { transform: translateY(-5px); border-color: var(--primary); }
+        .card-img { width: 100%; aspect-ratio: 16/9; object-fit: cover; border-bottom: 1px solid var(--border); }
+        .card-info { padding: 15px; }
+        .price { font-weight: 800; color: var(--primary); }
+    </style>
+</head>
+<body>
+
+<aside class="sidebar">
+    <div class="logo">🎮 STEAMHUB</div>
+    <a href="#" class="nav-link active" data-filter="kesfet">🏠 Keşfet</a>
+    <a href="#" class="nav-link" data-filter="trend">🔥 Popüler</a>
+    <a href="#" class="nav-link" data-filter="indirim">🏷️ İndirimler</a>
+    <a href="#" class="nav-link" data-filter="yeni">✨ Yeni</a>
+    <a href="#" class="nav-link" data-filter="rastgele" style="color: #ffd700;">🎲 Şanslıyım?</a>
+</aside>
+
+<main class="content">
+    <input type="text" class="search-bar" placeholder="Oyun ara..." id="searchInput">
+    <h2 id="sectionTitle" style="margin-bottom: 30px;">Keşfet</h2>
+    <div class="game-grid" id="gameGrid">
+        {% for oyun in content.discovery %}
+        <a href="/game/{{ oyun.id }}" class="card">
+            <img src="{{ oyun.large_capsule_image }}" class="card-img" alt="{{ oyun.name }}">
+            <div class="card-info">
+                <h3 style="margin:0; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ oyun.name }}</h3>
+                <div style="margin-top:10px;" class="price">
+                    {% if oyun.final_price %} ${{ (oyun.final_price/100)|round(2) }} {% else %} Detaylar {% endif %}
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+</main>
+
+<script>
+    const gameGrid = document.getElementById('gameGrid');
+    const sectionTitle = document.getElementById('sectionTitle');
+    const searchInput = document.getElementById('searchInput');
+
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', async (e) => {
+            e.preventDefault();
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            link.classList.add('active');
+            const type = link.getAttribute('data-filter');
+            sectionTitle.innerText = "Yükleniyor...";
+            const res = await fetch(`/api/filter/${type}`);
+            const data = await res.json();
+            sectionTitle.innerText = link.innerText.trim();
+            render(data);
+        });
+    });
+
+    searchInput.addEventListener('input', async (e) => {
+        const q = e.target.value;
+        if(q.length > 2) {
+            const res = await fetch(`/api/search?q=${q}`);
+            const data = await res.json();
+            render(data);
+        }
+    });
+
+    function render(games) {
+        if(!games || games.length === 0) {
+            gameGrid.innerHTML = '<p>Sonuç bulunamadı.</p>';
+            return;
+        }
+        gameGrid.innerHTML = games.map(g => `
+            <a href="/game/${g.id}" class="card">
+                <img src="${g.large_capsule_image || g.header_image}" class="card-img">
+                <div class="card-info">
+                    <h3 style="margin:0; font-size:16px;">${g.name}</h3>
+                    <div style="margin-top:10px;" class="price">İncele</div>
+                </div>
+            </a>
+        `).join('');
+    }
+</script>
+</body>
+</html>
